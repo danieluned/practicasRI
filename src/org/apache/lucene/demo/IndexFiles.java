@@ -21,6 +21,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.es.SpanishAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.StringField;
@@ -40,10 +41,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringBufferInputStream;
 import java.io.StringReader;
 import java.nio.file.Paths;
 import java.util.Date;
-
+import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -237,6 +241,8 @@ public class IndexFiles {
              camposStringField(doc,doc2,"dc:format","format");
              camposStringField(doc,doc2,"dc:language","language");
             
+             // obtener westField, eastField, northFiel, southField
+             indexacionEspacial(doc, doc2);
             
           } catch (Exception ex) {
         	  System.out.println("Error al parsear el arbol Dom");
@@ -262,21 +268,64 @@ public class IndexFiles {
     }
   }
 
-private static void camposStringField(Document doc, org.w3c.dom.Document doc2, String etiqueta, String campo) {
-	// TODO Auto-generated method stub
-	NodeList nodos = doc2.getElementsByTagName(etiqueta);
-	 for (int i = 0; i < nodos.getLength(); i++) {
-	     Field pathField = new StringField(campo,nodos.item(i).getTextContent(), Field.Store.YES);
-         doc.add(pathField);
-	  }
-}
+	private static void indexacionEspacial(Document doc, org.w3c.dom.Document doc2) {
+		NodeList nodos = doc2.getElementsByTagName("ows:LowerCorner");
+		 if (nodos.getLength() > 0){
+			 
+			 String lowerCorner = nodos.item(0).getTextContent();
+			 String lowerCornercomma = lowerCorner.replace('.',',');
+			 Scanner scan = new Scanner(lowerCornercomma);
+			 if(scan.hasNextDouble()){
+				 Double west = scan.nextDouble();
+				 DoublePoint westField = new DoublePoint("west",west);
+				 doc.add(westField);
+				 System.out.println("west: "+west);
+			 }
+			 if(scan.hasNextDouble()){
+				 Double south = scan.nextDouble();
+				 DoublePoint southField = new DoublePoint("south",south);
+				 doc.add(southField);
+				 System.out.println("south: "+south);
+			 }
+			 scan.close();
+		 }
+		 nodos = doc2.getElementsByTagName("ows:UpperCorner");
+		 if (nodos.getLength() > 0){
+			 
+			 String upperCorner = nodos.item(0).getTextContent();
+			 String upperCornerComma = upperCorner.replace('.',',');
+			 Scanner scan = new Scanner(upperCornerComma);
+			 if(scan.hasNextDouble()){
+				 Double east =  scan.nextDouble();
+				 DoublePoint eastField = new DoublePoint("east",east);
+				 doc.add(eastField);
+				 System.out.println("east: "+east);
+			 }
+			 if(scan.hasNextDouble()){
+				 Double north =  scan.nextDouble();
+				 DoublePoint northField = new DoublePoint("north",north);
+				 doc.add(northField);
+				 System.out.println("north: "+north);
+			 }
+			 scan.close();
+		 }
+	}
 
-private static void camposTextField(Document doc, org.w3c.dom.Document doc2,String etiqueta,String campo) {
-	NodeList nodos = doc2.getElementsByTagName(etiqueta);
-	 for (int i = 0; i < nodos.getLength(); i++) {
-		 Reader inputString = new StringReader(nodos.item(i).getTextContent());
-	     doc.add(new TextField(campo,new BufferedReader(inputString)));
-	     
-	  }
-}
+	private static void camposStringField(Document doc, org.w3c.dom.Document doc2, String etiqueta, String campo) {
+		// TODO Auto-generated method stub
+		NodeList nodos = doc2.getElementsByTagName(etiqueta);
+		 for (int i = 0; i < nodos.getLength(); i++) {
+		     Field pathField = new StringField(campo,nodos.item(i).getTextContent(), Field.Store.YES);
+	         doc.add(pathField);
+		  }
+	}
+	
+	private static void camposTextField(Document doc, org.w3c.dom.Document doc2,String etiqueta,String campo) {
+		NodeList nodos = doc2.getElementsByTagName(etiqueta);
+		 for (int i = 0; i < nodos.getLength(); i++) {
+			 Reader inputString = new StringReader(nodos.item(i).getTextContent());
+		     doc.add(new TextField(campo,new BufferedReader(inputString)));
+		     
+		  }
+	}
 }

@@ -250,6 +250,9 @@ public class IndexFiles {
              
              // crear indice temporal
              indexacionTemporal(doc,doc2);
+             
+             // crear indice y consulta para periodos temporales
+             indexacionPeriodoTemporal(doc,doc2);
             
           } catch (Exception ex) {
         	  System.out.println("Error al parsear el arbol Dom");
@@ -275,6 +278,39 @@ public class IndexFiles {
     }
   }
 
+	private static void indexacionPeriodoTemporal(Document doc, org.w3c.dom.Document doc2) {
+	// TODO Auto-generated method stub
+		NodeList nodos = doc2.getElementsByTagName("dcterms:temporal");
+		if (nodos.getLength() > 0){
+			if (!nodos.item(0).getTextContent().equals("None") ){
+				
+				String a[]= nodos.item(0).getTextContent().split(";");
+				if (a.length == 1){
+					String begin = a[0].replaceAll("-", "");
+					String end =  "20171024"; //Fecha actual
+					 Field pathField = new StringField("begin",begin, Field.Store.YES);
+			         doc.add(pathField);	
+			         System.out.println("begin: "+begin);
+			         Field pathField2 = new StringField("end",end, Field.Store.YES);
+			         doc.add(pathField2);	
+			         System.out.println("end: "+end);
+				}else{
+					
+				
+				String begin = a[0].split("=")[1].replaceAll("-", "");
+				String end =  a[1].split("=")[1].replaceAll("-", "");
+				 Field pathField = new StringField("begin",begin, Field.Store.YES);
+		         doc.add(pathField);	
+		         System.out.println("begin: "+begin);
+		         Field pathField2 = new StringField("end",end, Field.Store.YES);
+		         doc.add(pathField2);	
+		         System.out.println("end: "+end);
+				}
+			}
+			
+		}
+	}
+
 	private static void indexacionTemporal(Document doc, org.w3c.dom.Document doc2) {
 	// TODO Auto-generated method stub
 		NodeList nodos = doc2.getElementsByTagName("dcterms:created");
@@ -284,7 +320,7 @@ public class IndexFiles {
 			 String created = createdW3CDTF.replaceAll("-", "");
 			 Field pathField = new StringField("created",created, Field.Store.YES);
 	         doc.add(pathField);	
-	         System.out.println(created);
+	         System.out.println("created: "+created);
 		 }
 		 nodos = doc2.getElementsByTagName("dcterms:issued");
 		 if (nodos.getLength() > 0){
@@ -293,7 +329,7 @@ public class IndexFiles {
 			 String issued = issuedW3CDTF.replaceAll("-", "");
 			 Field pathField = new StringField("issued",issued, Field.Store.YES);
 	         doc.add(pathField);	
-	         System.out.println(issued);
+	         System.out.println("issued: "+issued);
 		 }
 	}
 

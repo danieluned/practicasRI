@@ -23,14 +23,21 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.Date;
+import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.es.SpanishAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -114,10 +121,10 @@ public class SearchFiles {
       if (line.length() == 0) {
         break;
       }
-      
-      Query query = parser.parse(line);
-      System.out.println("Searching for: " + query.toString(field));
-            
+     
+     // Query query = parser.parse(line);
+     // System.out.println("Searching for: " + query.toString(field));
+       /*   
       if (repeat > 0) {                           // repeat & time as benchmark
         Date start = new Date();
         for (int i = 0; i < repeat; i++) {
@@ -126,8 +133,9 @@ public class SearchFiles {
         Date end = new Date();
         System.out.println("Time: "+(end.getTime()-start.getTime())+"ms");
       }
-
-      doPagingSearch(in, searcher, query, hitsPerPage, raw, queries == null && queryString == null);
+      */
+      
+      doPagingSearch(in, searcher,  hitsPerPage, raw, queries == null && queryString == null,line,parser);
 
       if (queryString != null) {
         break;
@@ -146,10 +154,95 @@ public class SearchFiles {
    * is executed another time and all hits are collected.
    * 
    */
-  public static void doPagingSearch(BufferedReader in, IndexSearcher searcher, Query query, 
-                                     int hitsPerPage, boolean raw, boolean interactive) throws IOException {
+  public static void doPagingSearch(BufferedReader in, IndexSearcher searcher,  
+                                     int hitsPerPage, boolean raw, boolean interactive, String consulta,QueryParser q) throws IOException {
  
+	 //Consulta
+	 Query query = null;
+		
+	// Encontrar una consulta espacial de la consulta
+	String  exp= "spatial:-?\\d+\\.\\d+,-?\\d+\\.\\d+,-?\\d+\\.\\d+,-?\\d+\\.\\d+";
+	Pattern pattern = Pattern.compile(exp);
+	Matcher m = pattern.matcher(consulta);
+	
+	
+	if(m.find()){
+		//Procesar una query espacial
+		String spatial = m.group();
+		spatial = spatial.substring(8);
+		spatial = spatial.replaceAll(",", " ");
+		spatial = spatial.replaceAll("\\.", ",");
+		Scanner scan = new Scanner(spatial);
+		System.out.println(spatial);
+		Double west = scan.nextDouble();
+		Double east = scan.nextDouble();
+		Double south = scan.nextDouble();
+		Double north = scan.nextDouble();
+		
+		scan.close();
+		//System.out.println("East: "+east+"\tWest: "+west+"\tSouth: "+south+"\tNorth: "+north);
+		//Xmin <= east 
+		Query westRangeQuery = DoublePoint.newRangeQuery(IndexFiles.WEST, Double.NEGATIVE_INFINITY, east);
+		//Xmax >= west
+		Query eastRangeQuery = DoublePoint.newRangeQuery(IndexFiles.EAST, west, Double.POSITIVE_INFINITY);
+		
+		//Ymin <= north
+		Query southRangeQuery = DoublePoint.newRangeQuery(IndexFiles.SOUTH, Double.NEGATIVE_INFINITY, north);
+		
+		//Ymax >= south 
+		Query northRangeQuery = DoublePoint.newRangeQuery(IndexFiles.NORTH, south, Double.POSITIVE_INFINITY);
+		
+		//... 
+		BooleanQuery querya = new BooleanQuery.Builder()
+				.add(westRangeQuery,BooleanClause.Occur.MUST)
+				.add(eastRangeQuery,BooleanClause.Occur.MUST)
+				.add(southRangeQuery,BooleanClause.Occur.MUST)
+				.add(northRangeQuery,BooleanClause.Occur.MUST)
+				//...
+				//.add(westRangeQuery, occur)
+		
+				.build();
+		String sinboolean = consulta.replaceFirst(exp,"");
+		
+		if (sinboolean.length() == 0){
+			query  = querya;
+		}else{
+			 Query q2 = null;
+			try {
+				q2 = q.parse(sinboolean);
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		    query = new BooleanQuery.Builder()
+		    		.add(q2, BooleanClause.Occur.SHOULD)
+		    		.add(querya,BooleanClause.Occur.SHOULD)
+		    		.build();
+		}
+	   
+	}else{
+		//No hay query espacial, procesarla normalmente
+		try{
+			query = q.parse(consulta);
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
+	
     // Collect enough docs to show 5 pages
+	
+	
+	
+	
+	
     TopDocs results = searcher.search(query, 5 * hitsPerPage);
     ScoreDoc[] hits = results.scoreDocs;
     

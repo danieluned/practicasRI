@@ -63,6 +63,10 @@ import javax.xml.parsers.DocumentBuilderFactory;
  * Run it with no command-line arguments for usage information.
  */
 public class IndexFiles {
+  public static final String WEST = "west";
+  public static final String EAST = "east";
+  public static final String SOUTH = "south";
+  public static final String NORTH = "north";
   
   private IndexFiles() {}
 
@@ -277,13 +281,13 @@ public class IndexFiles {
 			 Scanner scan = new Scanner(lowerCornercomma);
 			 if(scan.hasNextDouble()){
 				 Double west = scan.nextDouble();
-				 DoublePoint westField = new DoublePoint("west",west);
+				 DoublePoint westField = new DoublePoint(WEST,west);
 				 doc.add(westField);
 				 System.out.println("west: "+west);
 			 }
 			 if(scan.hasNextDouble()){
 				 Double south = scan.nextDouble();
-				 DoublePoint southField = new DoublePoint("south",south);
+				 DoublePoint southField = new DoublePoint(SOUTH,south);
 				 doc.add(southField);
 				 System.out.println("south: "+south);
 			 }
@@ -297,13 +301,13 @@ public class IndexFiles {
 			 Scanner scan = new Scanner(upperCornerComma);
 			 if(scan.hasNextDouble()){
 				 Double east =  scan.nextDouble();
-				 DoublePoint eastField = new DoublePoint("east",east);
+				 DoublePoint eastField = new DoublePoint(EAST,east);
 				 doc.add(eastField);
 				 System.out.println("east: "+east);
 			 }
 			 if(scan.hasNextDouble()){
 				 Double north =  scan.nextDouble();
-				 DoublePoint northField = new DoublePoint("north",north);
+				 DoublePoint northField = new DoublePoint(NORTH,north);
 				 doc.add(northField);
 				 System.out.println("north: "+north);
 			 }

@@ -247,6 +247,9 @@ public class IndexFiles {
             
              // obtener westField, eastField, northFiel, southField
              indexacionEspacial(doc, doc2);
+             
+             // crear indice temporal
+             indexacionTemporal(doc,doc2);
             
           } catch (Exception ex) {
         	  System.out.println("Error al parsear el arbol Dom");
@@ -271,6 +274,28 @@ public class IndexFiles {
       }
     }
   }
+
+	private static void indexacionTemporal(Document doc, org.w3c.dom.Document doc2) {
+	// TODO Auto-generated method stub
+		NodeList nodos = doc2.getElementsByTagName("dcterms:created");
+		 if (nodos.getLength() > 0){
+			 
+			 String createdW3CDTF = nodos.item(0).getTextContent();
+			 String created = createdW3CDTF.replaceAll("-", "");
+			 Field pathField = new StringField("created",created, Field.Store.YES);
+	         doc.add(pathField);	
+	         System.out.println(created);
+		 }
+		 nodos = doc2.getElementsByTagName("dcterms:issued");
+		 if (nodos.getLength() > 0){
+			 
+			 String issuedW3CDTF = nodos.item(0).getTextContent();
+			 String issued = issuedW3CDTF.replaceAll("-", "");
+			 Field pathField = new StringField("issued",issued, Field.Store.YES);
+	         doc.add(pathField);	
+	         System.out.println(issued);
+		 }
+	}
 
 	private static void indexacionEspacial(Document doc, org.w3c.dom.Document doc2) {
 		NodeList nodos = doc2.getElementsByTagName("ows:LowerCorner");
